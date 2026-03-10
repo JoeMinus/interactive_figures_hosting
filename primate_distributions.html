@@ -6,10 +6,115 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
     body { margin:0; padding:0; font-family:sans-serif; }
-    #map { width: 100%; height: 600px; }
-    #time { 
-      width:100%; 
-      text-align:center; 
+
+    #main-wrapper {
+      display: flex;
+      width: 100%;
+    }
+
+    #phylo-panel {
+      width: 280px;
+      min-width: 280px;
+      height: 100%;
+      background: #f9f9f9;
+      border-right: 2px solid #ccc;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: width 0.3s, min-width 0.3s;
+    }
+    #phylo-panel.collapsed {
+      width: 36px;
+      min-width: 36px;
+    }
+    #phylo-panel.collapsed #phylo-scroll,
+    #phylo-panel.collapsed #phylo-title,
+    #phylo-panel.collapsed #phylo-zoom-controls {
+      display: none;
+    }
+
+    #phylo-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 8px;
+      background: #e0e0e0;
+      border-bottom: 1px solid #ccc;
+      font-weight: bold;
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    #phylo-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #phylo-toggle {
+      cursor: pointer;
+      background: #bbb;
+      border: none;
+      border-radius: 3px;
+      padding: 2px 7px;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    #phylo-toggle:hover { background: #999; }
+
+    #phylo-zoom-controls {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      padding: 4px;
+      background: #ececec;
+      border-bottom: 1px solid #ccc;
+    }
+    #phylo-zoom-controls button {
+      width: 28px;
+      height: 28px;
+      font-size: 18px;
+      line-height: 1;
+      border: 1px solid #aaa;
+      border-radius: 4px;
+      background: white;
+      cursor: pointer;
+    }
+    #phylo-zoom-controls button:hover { background: #ddd; }
+    #phylo-zoom-label {
+      font-size: 12px;
+      line-height: 28px;
+      color: #555;
+      min-width: 38px;
+      text-align: center;
+    }
+
+    #phylo-scroll {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      cursor: grab;
+      user-select: none;
+    }
+    #phylo-scroll:active { cursor: grabbing; }
+
+    #phylo-inner {
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform-origin: 0 0;
+    }
+
+    #phylo-img {
+      display: block;
+    }
+
+    #map {
+      flex: 1;
+      height: 100%;
+    }
+
+    #time {
+      width: 100%;
+      text-align: center;
       padding: 10px 0;
       font-size: 20px;
       font-weight: bold;
@@ -27,76 +132,116 @@
       z-index: 1000;
       font-size: 14px;
     }
-    .nav-buttons { text-align:center; padding: 8px 0; }
-    .nav-buttons button { font-size:16px; padding:5px 10px; margin:0 5px; }
-
+    .nav-buttons { text-align: center; padding: 8px 0; }
+    .nav-buttons button { font-size: 16px; padding: 5px 10px; margin: 0 5px; }
   </style>
 </head>
 <body>
 
-<div id="map"></div>
+<div id="main-wrapper">
+  <div id="phylo-panel">
+    <div id="phylo-header">
+      <span id="phylo-title">Phylogeny</span>
+      <button id="phylo-toggle" title="Collapse/expand">◀</button>
+    </div>
+    <div id="phylo-zoom-controls">
+      <button id="phylo-zoom-out">−</button>
+      <span id="phylo-zoom-label">100%</span>
+      <button id="phylo-zoom-in">+</button>
+      <button id="phylo-zoom-reset" title="Reset view" style="width:auto; padding:0 7px; font-size:13px;">⌂</button>
+    </div>
+    <div id="phylo-scroll">
+      <div id="phylo-inner">
+        <img id="phylo-img" src="big_tree_vertical.svg" />
+      </div>
+    </div>
+  </div>
+  <div id="map"></div>
+</div>
+
 <div class="info-panel" id="info"></div>
 <div id="time"></div>
 <div class="nav-buttons">
   <button id="prevBtn">◀</button>
   <button id="nextBtn">▶</button>
 </div>
-<p style="font-size:20px; text-align:center"><b>Maps:</b> Scotese, C.R., 2016. PALEOMAP PaleoAtlas for GPlates and the PaleoData Plotter Program, PALEOMAP Project, http://www.earthbyte.org/paleomap-­‐paleoatlas-­‐for-­‐gplates/</div>
-<p style="font-size:1; text-align:center; color:crimson">Still in progress. Check back later for updates.</div>
+
+<p style="font-size:14px; text-align:center; color:crimson">Still in progress. Check back later for updates.</p>
+<hr>
+
+<p style="font-size:18px; text-align:left">
+  <b>Software & data</b>
+</p>
+
+<p style="font-size:14px; text-align:left">
+  <b>Maps:</b> Adapted from Scotese, C.R., and Wright, N., 2018. PALEOMAP Paleodigital Elevation Models (PaleoDEMS) for the Phanerozoic PALEOMAP Project, https://www.earthbyte.org/paleodem-resourcescotese-and-wright-2018/
+</p>
+<p style="font-size:14px; text-align:left">
+  <b>Phylogeny:</b> Adapted from the metatree approach that combines genetic and morphological data in a single analysis. Wisniewski, A.L., Lloyd, G.T. and Slater, G.J., 2022. Extant species fail to estimate ancestral geographical ranges at older nodes in primate phylogeny. Proceedings of the Royal Society B: Biological Sciences, 289(1975). 
+</p>
+<p style="font-size:14px; text-align:left">
+  <b>Plotting the phylogeny:</b> To plot the phylogeny I used TreeViewer. See here for more details: Bianchini, G., & Sánchez-Baracaldo, P. (2024). TreeViewer: Flexible, modular software to visualise and manipulate phylogenetic trees. Ecology and Evolution, 14, e10873. https://doi.org/10.1002/ece3.10873 
+</p>
+<p style="font-size:14px; text-align:left">
+  <b>Taxonomic images:</b> Sourced from https://www.phylopic.org/ 
+</p>
+
+<hr>
+
+<p style="font-size:18px; text-align:left">
+  <b>Useful referenes</b>
+</p>
+
+<p style="font-size:12px; text-align:left">
+  Beard, K.C. (2016) ‘Out of Asia: Anthropoid Origins and the Colonization of Africa’, Annual Review of Anthropology, 45(Volume 45, 2016), pp. 199–213. Available at: https://doi.org/10.1146/annurev-anthro-102215-100019.
+</p>
+<p style="font-size:12px; text-align:left">
+  Censky, E.J., Hodge, K. and Dudley, J. (1998) ‘Over-water dispersal of lizards due to hurricanes’, Nature, 395(6702), pp. 556–556. Available at: https://doi.org/10.1038/26886.
+</p>
+<p style="font-size:12px; text-align:left">
+  Gunnell, G.F. et al. (2018) ‘Fossil lemurs from Egypt and Kenya suggest an African origin for Madagascar’s aye-aye’, Nature Communications, 9, p. 3193. Available at: https://doi.org/10.1038/s41467-018-05648-w.
+</p>
+<p style="font-size:12px; text-align:left">
+  Marivaux, L. et al. (2023) ‘An eosimiid primate of South Asian affinities in the Paleogene of Western Amazonia and the origin of New World monkeys’, Proceedings of the National Academy of Sciences, 120(28), p. e2301338120. Available at: https://doi.org/10.1073/pnas.2301338120.
+</p>
+<p style="font-size:12px; text-align:left">
+  Montheil, L. et al. (2026) ‘Across ancient oceans: Eocene dispersal routes of Asian terrestrial mammals to Europe, Afro-Arabia and South America’, Earth-Science Reviews, 273, p. 105352. Available at: https://doi.org/10.1016/j.earscirev.2025.105352.
+</p>
+<p style="font-size:12px; text-align:left">
+  Oliveira, F.B. de, Molina, E.C. and Marroig, G. (2009) ‘Paleogeography of the South Atlantic: a Route for Primates and Rodents into the New World?’, in P.A. Garber et al. (eds) South American Primates: Comparative Perspectives in the Study of Behavior, Ecology, and Conservation. New York, NY: Springer, pp. 55–68. Available at: https://doi.org/10.1007/978-0-387-78705-3_3.
+</p>
+<p style="font-size:12px; text-align:left">
+  Silvestro, D. et al. (2019) ‘Early Arrival and Climatically-Linked Geographic Expansion of New World Monkeys from Tiny African Ancestors’, Systematic Biology, 68(1), pp. 78–92. Available at: https://doi.org/10.1093/sysbio/syy046.
+</p>
+<p style="font-size:12px; text-align:left">
+  Springer, M.S. et al. (2012) ‘Macroevolutionary Dynamics and Historical Biogeography of Primate Diversification Inferred from a Species Supermatrix’, PLOS ONE, 7(11), p. e49521. Available at: https://doi.org/10.1371/journal.pone.0049521.
+</p>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
 
+/********** Slide data **********/
 var slides = [
   {
-    map: "maps/Map16a_KT_Boundary_066.jpg",
+    map: "maps_clean/65_ma_simplified.png",
     time: "66 Million Years Ago",
     fossils: [
-      { name: "Where did primates first evolve?", x: 600, y: 200, info: "It is a question that has remained stubbornly difficult to answer. Decades of debate have seen the number of candidate continents drop to… four, “narrowing” the possibilities to most of the Northern Hemisphere (North America, Europe, and Asia) and Africa.Over the same period, outlandish hypotheses about primate evolution and dispersal, such as their voyage across the Atlantic on nothing but rafts of vegetation, have gained general attention.The first crown primates appear in the fossil record at the beginning of the Eocene, some 56 million years ago (Ma). But genetic data estimates primate origins at about 66 Ma, soon after, the mass extinction event that wiped out the non-avian dinosaurs. This leaves an almost 10-million-year gap in our knowledge of primate dispersals.For the very first stem primates, Asia has been favoured, as it happens to be where their closest living relatives (the colugos and tree shrews) are found today. But, as we will soon see, species distributions can fluctuate wildly over just a few million years. Modern primates are mostly restricted to the Southern Hemisphere, the opposite of their early fossil representatives. The same could be true for tree shrews and colugos.A recent modelling study found the greatest support for a North American origin (Avaria-Llautureo et al., 2025). However, without more fossil discoveries, this mystery is likely to endure a while longer." },
-      { name: "Where did primates first evolve?", x: 1050, y: 275, info: "It is a question that has remained stubbornly difficult to answer. Decades of debate have seen the number of candidate continents drop to… four, “narrowing” the possibilities to most of the Northern Hemisphere (North America, Europe, and Asia) and Africa.Over the same period, outlandish hypotheses about primate evolution and dispersal, such as their voyage across the Atlantic on nothing but rafts of vegetation, have gained general attention.The first crown primates appear in the fossil record at the beginning of the Eocene, some 56 million years ago (Ma). But genetic data estimates primate origins at about 66 Ma, soon after, the mass extinction event that wiped out the non-avian dinosaurs. This leaves an almost 10-million-year gap in our knowledge of primate dispersals.For the very first stem primates, Asia has been favoured, as it happens to be where their closest living relatives (the colugos and tree shrews) are found today. But, as we will soon see, species distributions can fluctuate wildly over just a few million years. Modern primates are mostly restricted to the Southern Hemisphere, the opposite of their early fossil representatives. The same could be true for tree shrews and colugos.A recent modelling study found the greatest support for a North American origin (Avaria-Llautureo et al., 2025). However, without more fossil discoveries, this mystery is likely to endure a while longer." },
-      { name: "Where did primates first evolve?", x: 1400, y: 250, info: "It is a question that has remained stubbornly difficult to answer. Decades of debate have seen the number of candidate continents drop to… four, “narrowing” the possibilities to most of the Northern Hemisphere (North America, Europe, and Asia) and Africa.Over the same period, outlandish hypotheses about primate evolution and dispersal, such as their voyage across the Atlantic on nothing but rafts of vegetation, have gained general attention.The first crown primates appear in the fossil record at the beginning of the Eocene, some 56 million years ago (Ma). But genetic data estimates primate origins at about 66 Ma, soon after, the mass extinction event that wiped out the non-avian dinosaurs. This leaves an almost 10-million-year gap in our knowledge of primate dispersals.For the very first stem primates, Asia has been favoured, as it happens to be where their closest living relatives (the colugos and tree shrews) are found today. But, as we will soon see, species distributions can fluctuate wildly over just a few million years. Modern primates are mostly restricted to the Southern Hemisphere, the opposite of their early fossil representatives. The same could be true for tree shrews and colugos.A recent modelling study found the greatest support for a North American origin (Avaria-Llautureo et al., 2025). However, without more fossil discoveries, this mystery is likely to endure a while longer."},
-      { name: "Where did primates first evolve?", x: 975, y: 390, info: "It is a question that has remained stubbornly difficult to answer. Decades of debate have seen the number of candidate continents drop to… four, “narrowing” the possibilities to most of the Northern Hemisphere (North America, Europe, and Asia) and Africa.Over the same period, outlandish hypotheses about primate evolution and dispersal, such as their voyage across the Atlantic on nothing but rafts of vegetation, have gained general attention.The first crown primates appear in the fossil record at the beginning of the Eocene, some 56 million years ago (Ma). But genetic data estimates primate origins at about 66 Ma, soon after, the mass extinction event that wiped out the non-avian dinosaurs. This leaves an almost 10-million-year gap in our knowledge of primate dispersals.For the very first stem primates, Asia has been favoured, as it happens to be where their closest living relatives (the colugos and tree shrews) are found today. But, as we will soon see, species distributions can fluctuate wildly over just a few million years. Modern primates are mostly restricted to the Southern Hemisphere, the opposite of their early fossil representatives. The same could be true for tree shrews and colugos.A recent modelling study found the greatest support for a North American origin (Avaria-Llautureo et al., 2025). However, without more fossil discoveries, this mystery is likely to endure a while longer." }
+      { name: "Where did primates first evolve?", x: 2000,  y: 800, info: "It is a question that has remained stubbornly difficult to answer. Decades of debate have seen the number of candidate continents drop to… four, “narrowing” the possibilities to most of the Northern Hemisphere (North America, Europe, and Asia) and Africa.Over the same period, outlandish hypotheses about primate evolution and dispersal, such as their voyage across the Atlantic on nothing but rafts of vegetation, have gained general attention.The first crown primates appear in the fossil record at the beginning of the Eocene, some 56 million years ago (Ma). But genetic data estimates primate origins at about 66 Ma, soon after, the mass extinction event that wiped out the non-avian dinosaurs. This leaves an almost 10-million-year gap in our knowledge of primate dispersals.For the very first stem primates, Asia has been favoured, as it happens to be where their closest living relatives (the colugos and tree shrews) are found today. But, as we will soon see, species distributions can fluctuate wildly over just a few million years. Modern primates are mostly restricted to the Southern Hemisphere, the opposite of their early fossil representatives. The same could be true for tree shrews and colugos.A recent modelling study found the greatest support for a North American origin (Avaria-Llautureo et al., 2025). However, without more fossil discoveries, this mystery is likely to endure a while longer." },
+      { name: "Where did primates first evolve?", x: 2950, y: 940, info: "It is a question that has remained stubbornly difficult to answer. Decades of debate have seen the number of candidate continents drop to… four, “narrowing” the possibilities to most of the Northern Hemisphere (North America, Europe, and Asia) and Africa.Over the same period, outlandish hypotheses about primate evolution and dispersal, such as their voyage across the Atlantic on nothing but rafts of vegetation, have gained general attention.The first crown primates appear in the fossil record at the beginning of the Eocene, some 56 million years ago (Ma). But genetic data estimates primate origins at about 66 Ma, soon after, the mass extinction event that wiped out the non-avian dinosaurs. This leaves an almost 10-million-year gap in our knowledge of primate dispersals.For the very first stem primates, Asia has been favoured, as it happens to be where their closest living relatives (the colugos and tree shrews) are found today. But, as we will soon see, species distributions can fluctuate wildly over just a few million years. Modern primates are mostly restricted to the Southern Hemisphere, the opposite of their early fossil representatives. The same could be true for tree shrews and colugos.A recent modelling study found the greatest support for a North American origin (Avaria-Llautureo et al., 2025). However, without more fossil discoveries, this mystery is likely to endure a while longer." },
+      { name: "Where did primates first evolve?", x: 3800, y: 900, info: "It is a question that has remained stubbornly difficult to answer. Decades of debate have seen the number of candidate continents drop to… four, “narrowing” the possibilities to most of the Northern Hemisphere (North America, Europe, and Asia) and Africa.Over the same period, outlandish hypotheses about primate evolution and dispersal, such as their voyage across the Atlantic on nothing but rafts of vegetation, have gained general attention.The first crown primates appear in the fossil record at the beginning of the Eocene, some 56 million years ago (Ma). But genetic data estimates primate origins at about 66 Ma, soon after, the mass extinction event that wiped out the non-avian dinosaurs. This leaves an almost 10-million-year gap in our knowledge of primate dispersals.For the very first stem primates, Asia has been favoured, as it happens to be where their closest living relatives (the colugos and tree shrews) are found today. But, as we will soon see, species distributions can fluctuate wildly over just a few million years. Modern primates are mostly restricted to the Southern Hemisphere, the opposite of their early fossil representatives. The same could be true for tree shrews and colugos.A recent modelling study found the greatest support for a North American origin (Avaria-Llautureo et al., 2025). However, without more fossil discoveries, this mystery is likely to endure a while longer." },
+      { name: "Where did primates first evolve?", x: 2900,  y: 1150, info: "It is a question that has remained stubbornly difficult to answer. Decades of debate have seen the number of candidate continents drop to… four, “narrowing” the possibilities to most of the Northern Hemisphere (North America, Europe, and Asia) and Africa.Over the same period, outlandish hypotheses about primate evolution and dispersal, such as their voyage across the Atlantic on nothing but rafts of vegetation, have gained general attention.The first crown primates appear in the fossil record at the beginning of the Eocene, some 56 million years ago (Ma). But genetic data estimates primate origins at about 66 Ma, soon after, the mass extinction event that wiped out the non-avian dinosaurs. This leaves an almost 10-million-year gap in our knowledge of primate dispersals.For the very first stem primates, Asia has been favoured, as it happens to be where their closest living relatives (the colugos and tree shrews) are found today. But, as we will soon see, species distributions can fluctuate wildly over just a few million years. Modern primates are mostly restricted to the Southern Hemisphere, the opposite of their early fossil representatives. The same could be true for tree shrews and colugos.A recent modelling study found the greatest support for a North American origin (Avaria-Llautureo et al., 2025). However, without more fossil discoveries, this mystery is likely to endure a while longer." }
     ]
   },
-  // {
-  //   map: "Map15a Paleocene_060.jpg",
-  //   time: "60 Million Years Ago",
-  // },
-  // {
-  //   map: "Map14a PETM_055.jpg",
-  //   time: "55 Million Years Ago",
-  // },
-  // {
-  //   map: "Map13a Early Eocene_050.jpg",
-  //   time: "50 Million Years Ago",
-  // },
-  // {
-  //   map: "Map12a early Middle Eocene_045.jpg",
-  //   time: "45 Million Years Ago",
-  // },
-
   {
-    map: "maps/Map11a MIddle Eocene_040.jpg",
+    map: "maps_clean/40_ma_simplified.png",
     time: "40 Million Years Ago",
     fossils: [
-      { name: "The first voyage", x: 1100, y: 350, info: "In the mid Eocene a group of primates known as anthropoids (the ancestors of monkeys, apes, and humans), suddenly begin to appear in Africa where before they had only occurred in the Northern continents. This may seem unremarkable at first, until one realises that at the time of that transition, Africa was separated from Europe and Asia by a now extinct sea known as the Tethys. Estimates for how large this separation was differ between models, but range between 500-2000 km. For reference, the maximum width (North to South) of the Mediterranean today is 1600 km. How did our primate ancestors cross this sea to reach Africa? Scientists think they most likely rafted across, carried on flotillas of vegetation stripped from riverbanks during heavy floods. Torn from their home and cast adrift, the fossils that appear on the African mainland are a testament to their tale of survival. Once in Africa, anthropoids found remarkable success, but it appears as if this was just a stepping stone. Primates would traverse oceans again at least twice before our species emerged. And one would be a feat so impressive we did not match it until the end of the medieval period." },
-      { name: "True pioneers", x: 800, y: 600, info: "Living monkeys can be split into two main groups based on their worldly distribution. There are the new world monkeys and the old world monkeys. Divided by the Atlantic Ocean, it was thought that these two groups must have split off from one another at the same time South America and Africa divided. However, this would have been deep in the Cretaceous, when dinosaurs still ruled, and we know from genetic evidence that the split actually occurred roughly 40 million years ago. By that time, South America was not as far from Africa as it was today (it was about 1/3 closer), however there would have still been an entire ocean separating them. And whilst, there is evidence of island chains stretching out into the Atlantic, the closest was still some 800 km from the SA coast. And in fact, a recent paper concludes that island hopping was actually less likely than the alternative (Montheil et al., 2026). This alternative being yet another feat of ocean survival and traversal by our ancient primate relatives. Once again, scientists believe the frequent monsoons that assailed the coastline of West Africa at the time, may have dislodged a section of a riverbank, sweeping it and any unfortunate animals that may have been upon it, out into the open ocean. Yet even faced with a journey of 2000 km it seems at least one, or maybe, several voyages, made successful landfall. How strange it must have been for those ancient primates, finding themselves on a continent populated by giant sloths and armadillos, mammals that had been completely isolated from the rest of the world for many tens of millions of years" }
+        { name: "The first voyage", x: 3000, y: 950, info: "In the mid Eocene a group of primates known as anthropoids (the ancestors of monkeys, apes, and humans), suddenly begin to appear in Africa where before they had only occurred in the Northern continents. This may seem unremarkable at first, until one realises that at the time of that transition, Africa was separated from Europe and Asia by a now extinct sea known as the Tethys. Estimates for how large this separation was differ between models, but range between 500-2000 km. For reference, the maximum width (North to South) of the Mediterranean today is 1600 km. How did our primate ancestors cross this sea to reach Africa? Scientists think they most likely rafted across, carried on flotillas of vegetation stripped from riverbanks during heavy floods. Torn from their home and cast adrift, the fossils that appear on the African mainland are a testament to their tale of survival. Once in Africa, anthropoids found remarkable success, but it appears as if this was just a stepping stone. Primates would traverse oceans again at least twice before our species emerged. And one would be a feat so impressive we did not match it until the end of the medieval period." },
+      { name: "True pioneers", x: 2800, y: 1700, info: "Living monkeys can be split into two main groups based on their worldly distribution. There are the new world monkeys and the old world monkeys. Divided by the Atlantic Ocean, it was thought that these two groups must have split off from one another at the same time South America and Africa divided. However, this would have been deep in the Cretaceous, when dinosaurs still ruled, and we know from genetic evidence that the split actually occurred roughly 40 million years ago. By that time, South America was not as far from Africa as it was today (it was about 1/3 closer), however there would have still been an entire ocean separating them. And whilst, there is evidence of island chains stretching out into the Atlantic, the closest was still some 800 km from the SA coast. And in fact, a recent paper concludes that island hopping was actually less likely than the alternative (Montheil et al., 2026). This alternative being yet another feat of ocean survival and traversal by our ancient primate relatives. Once again, scientists believe the frequent monsoons that assailed the coastline of West Africa at the time, may have dislodged a section of a riverbank, sweeping it and any unfortunate animals that may have been upon it, out into the open ocean. Yet even faced with a journey of 2000 km it seems at least one, or maybe, several voyages, made successful landfall. How strange it must have been for those ancient primates, finding themselves on a continent populated by giant sloths and armadillos, mammals that had been completely isolated from the rest of the world for many tens of millions of years" }
     ]
   },
-  // {
-  //   map: "Map10a Late Eocene_035.jpg",
-  //   time: "35 Million Years Ago",
-  // },
-  // {
-  //   map: "Map9a  Early Oligocene_030.jpg",
-  //   time: "30 Million Years Ago",
-  // },
-  // {
-  //   map: "Map8a Late Oligocene_025.jpg",
-  //   time: "25 Million Years Ago",
-  // },
   {
-    map: "maps/Map7a  Early Miocene_020.jpg",
+    map: "maps_clean/20_ma_simplified.png",
     time: "20 Million Years Ago",
     fossils: [
       { name: "", x: 0, y: 0, info: "" },
@@ -105,25 +250,155 @@ var slides = [
   }
 ];
 
-var w = 2000;
-var h = 1000;
+/********** Main map **********/
+var w = 6000;
+var h = 3000;
 var ZOOM = 0;
 
 var map = L.map('map', {
   crs: L.CRS.Simple,
   minZoom: -2,
   maxZoom: 4,
-  zoomSnap: 0.1
+  zoomSnap: 0.1,
+  maxBoundsViscosity: 1.0
 });
 
 var southWest = map.unproject([0, h], ZOOM);
 var northEast = map.unproject([w, 0], ZOOM);
 var bounds = new L.LatLngBounds(southWest, northEast);
 map.fitBounds(bounds);
+map.setMaxBounds(bounds);
 
-var currentMap = null;
+/********** Resize wrapper to match image aspect ratio **********/
+var wrapper = document.getElementById('main-wrapper');
+var mapDiv  = document.getElementById('map');
+
+function resizeWrapper() {
+  var mapWidth = mapDiv.offsetWidth;
+  if (mapWidth === 0) return;
+  var newHeight = mapWidth * (h / w);
+  wrapper.style.height = newHeight + 'px';
+  map.invalidateSize();
+  map.fitBounds(bounds);
+  initPhyloZoom();
+}
+resizeWrapper();
+window.addEventListener('resize', resizeWrapper);
+
+/********** Phylogeny panel **********/
+var SVG_W = 9000;
+var SVG_H = 20311;
+var MIN_SCALE = 0;
+var MAX_SCALE = 5;
+var ZOOM_STEP = 1.25;  
+
+var phyloScroll = document.getElementById('phylo-scroll');
+var phyloInner  = document.getElementById('phylo-inner');
+var phyloImg    = document.getElementById('phylo-img');
+var zoomLabel   = document.getElementById('phylo-zoom-label');
+
+var pScale = 1;
+var pX = 0;
+var pY = 0;
+var fitScale = 1;  
+
+function applyPhyloTransform() {
+  phyloInner.style.transform =
+    'translate(' + pX + 'px, ' + pY + 'px) scale(' + pScale + ')';
+  zoomLabel.textContent = Math.round(pScale / fitScale * 100) + '%';
+}
+
+function initPhyloZoom() {
+  if (!phyloScroll) return;
+  var panelH = phyloScroll.offsetHeight;
+  if (panelH === 0) return;
+
+  phyloImg.style.width  = SVG_W + 'px';
+  phyloImg.style.height = SVG_H + 'px';
+
+  // Scale so full tree height fills the panel
+  fitScale = panelH / SVG_H;
+  pScale   = fitScale;
+
+  // Centre horizontally
+  pX = (phyloScroll.offsetWidth - SVG_W * pScale) / 2;
+  pY = 0;
+
+  applyPhyloTransform();
+}
+
+// Zoom toward the centre of the panel
+function zoomPhylo(newScale) {
+  newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, newScale));
+  if (newScale === pScale) return;
+
+  var cx = phyloScroll.offsetWidth  / 2;
+  var cy = phyloScroll.offsetHeight / 2;
+
+  var scaleRatio = newScale / pScale;
+  pX = cx - scaleRatio * (cx - pX);
+  pY = cy - scaleRatio * (cy - pY);
+  pScale = newScale;
+
+  applyPhyloTransform();
+}
+
+document.getElementById('phylo-zoom-in').addEventListener('click', function() {
+  zoomPhylo(pScale * ZOOM_STEP);
+});
+document.getElementById('phylo-zoom-out').addEventListener('click', function() {
+  zoomPhylo(pScale / ZOOM_STEP);
+});
+document.getElementById('phylo-zoom-reset').addEventListener('click', function() {
+  initPhyloZoom();
+});
+
+/********** Drag to pan **********/
+var dragging = false;
+var dragStartX, dragStartY, dragOriginX, dragOriginY;
+
+phyloScroll.addEventListener('mousedown', function(e) {
+  dragging    = true;
+  dragStartX  = e.clientX;
+  dragStartY  = e.clientY;
+  dragOriginX = pX;
+  dragOriginY = pY;
+  e.preventDefault();
+});
+window.addEventListener('mousemove', function(e) {
+  if (!dragging) return;
+  pX = dragOriginX + (e.clientX - dragStartX);
+  pY = dragOriginY + (e.clientY - dragStartY);
+  applyPhyloTransform();
+});
+window.addEventListener('mouseup', function() {
+  dragging = false;
+});
+
+phyloImg.addEventListener('load', initPhyloZoom);
+if (phyloImg.complete) initPhyloZoom();
+
+/********** Collapse / expand **********/
+var phyloPanel  = document.getElementById('phylo-panel');
+var phyloToggle = document.getElementById('phylo-toggle');
+var collapsed   = false;
+
+phyloToggle.addEventListener('click', function() {
+  collapsed = !collapsed;
+  phyloPanel.classList.toggle('collapsed', collapsed);
+  phyloToggle.textContent = collapsed ? '▶' : '◀';
+  setTimeout(function() {
+    map.invalidateSize();
+    map.fitBounds(bounds);
+    resizeWrapper();
+    if (!collapsed) initPhyloZoom();
+  }, 320);
+});
+
+/********** Slide display **********/
+var currentMap     = null;
 var currentMarkers = [];
-var currentSlide = 0;
+var currentSlide   = 0;
 
 function showSlide(index) {
   var slide = slides[index];
@@ -136,19 +411,22 @@ function showSlide(index) {
 
   slide.fossils.forEach(function(fossil) {
     var latlng = map.unproject([fossil.x, fossil.y], ZOOM);
-    var marker = L.circleMarker(latlng, {
-      radius: 8,
-      fillColor: "#E63946",
-      color: "#ffffff",
-      weight: 2,
-      fillOpacity: 0.9
-    }).addTo(map);
-
+    var icon = L.divIcon({
+      html: `<div style="
+          width:16px; height:16px;
+          border:2px solid black; border-radius:50%;
+          background:transparent;
+          display:flex; align-items:center; justify-content:center;">
+        <div style="width:8px; height:8px; border-radius:50%; background:black;"></div>
+      </div>`,
+      className: '',
+      iconAnchor: [8, 8]
+    });
+    var marker = L.marker(latlng, { icon: icon }).addTo(map);
     marker.on('click', function() {
       document.getElementById('info').innerHTML =
         "<b>" + fossil.name + "</b><br>" + fossil.info;
     });
-
     currentMarkers.push(marker);
   });
 
@@ -156,6 +434,7 @@ function showSlide(index) {
   document.getElementById('info').innerHTML = "";
 }
 
+/********** Navigation **********/
 document.getElementById('prevBtn').addEventListener('click', function() {
   if (currentSlide > 0) { currentSlide--; showSlide(currentSlide); }
 });
