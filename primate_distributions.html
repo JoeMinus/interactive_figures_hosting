@@ -492,6 +492,13 @@ var slides = [
                             'branch_apes','branch_apes_tip'] }
 ];
 
+slides.forEach(function(slide) {
+  if (slide.map) {
+    var img = new Image();
+    img.src = slide.map;
+  }
+});
+
 /* ==========================================================
    AGE → SVG GROUP MAPPING
    ========================================================== */
