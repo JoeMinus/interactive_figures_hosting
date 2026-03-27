@@ -4,28 +4,35 @@
   <meta charset="utf-8" />
   <title>Primate_voyages_interactive_figure_test</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     body { margin:0; padding:0; font-family:sans-serif; }
+
+    :root {
+      --main-bg: #c1beba34;
+      --hover-bg: #8f8d8a34;
+    }
 
     #main-wrapper {
       display: flex;
       width: 100%;
+      height: 500px;
     }
 
     #phylo-panel {
-      width: 280px;
-      min-width: 280px;
+      width: 350px;
+      min-width: 350px;
       height: 100%;
-      background: #f9f9f9;
-      border-right: 2px solid #ccc;
+      background: var(--main-bg);
+      border-right: 2px solid var(--main-bg);
       display: flex;
       flex-direction: column;
       overflow: hidden;
       transition: width 0.3s, min-width 0.3s;
     }
     #phylo-panel.collapsed {
-      width: 36px;
-      min-width: 36px;
+      width: 15px;
+      min-width: 15px;
     }
     #phylo-panel.collapsed #phylo-scroll,
     #phylo-panel.collapsed #phylo-title,
@@ -38,51 +45,48 @@
       align-items: center;
       justify-content: space-between;
       padding: 6px 8px;
-      background: #e0e0e0;
-      border-bottom: 1px solid #ccc;
+      background: var(--main-bg);
+      border-bottom: 1px solid var(--main-bg);
       font-weight: bold;
       font-size: 13px;
       white-space: nowrap;
       overflow: hidden;
     }
-    #phylo-title {
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+    #phylo-title { overflow: hidden; text-overflow: ellipsis; }
     #phylo-toggle {
       cursor: pointer;
-      background: #bbb;
+      background: var(--main-bg);
       border: none;
       border-radius: 3px;
       padding: 2px 7px;
       font-size: 14px;
       flex-shrink: 0;
     }
-    #phylo-toggle:hover { background: #999; }
+    #phylo-toggle:hover { background: var(--hover-bg); }
 
     #phylo-zoom-controls {
       display: flex;
       justify-content: center;
       gap: 6px;
       padding: 4px;
-      background: #ececec;
-      border-bottom: 1px solid #ccc;
+      background: var(--main-bg);
+      border-bottom: 1px solid var(--main-bg);
     }
     #phylo-zoom-controls button {
       width: 28px;
       height: 28px;
       font-size: 18px;
       line-height: 1;
-      border: 1px solid #aaa;
+      border: 1px solid var(--main-bg);
       border-radius: 4px;
-      background: white;
+      background: var(--main-bg);
       cursor: pointer;
     }
-    #phylo-zoom-controls button:hover { background: #ddd; }
+    #phylo-zoom-controls button:hover { background: var(--hover-bg); }
     #phylo-zoom-label {
       font-size: 12px;
       line-height: 28px;
-      color: #555;
+      color: black;
       min-width: 38px;
       text-align: center;
     }
@@ -95,22 +99,108 @@
       user-select: none;
     }
     #phylo-scroll:active { cursor: grabbing; }
-
     #phylo-inner {
       position: absolute;
-      top: 0;
-      left: 0;
+      top: 0; left: 0;
       transform-origin: 0 0;
     }
+    #phylo-img { display: block; }
 
-    #phylo-img {
-      display: block;
+    #phylo-simple-svg-wrapper { width: 100%; height: 100%; display: flex; }
+    #phylo-simple-svg-wrapper svg { width: 100%; height: 100%; }
+
+    .tree-branch { transition: stroke 0.5s ease, opacity 0.5s ease; }
+    .tree-label { opacity: 1; }
+    .tree-tip { transition: opacity 0.3s ease, filter 0.3s ease; }
+    .tree-tip-highlighted {
+      filter: drop-shadow(0 0 6px #e63946);
+      fill: #e63946 !important;
+      opacity: 1 !important;
     }
 
-    #map {
-      flex: 1;
-      height: 100%;
+    /* ── Map container ── */
+    #map { flex: 1; height: 100%; position: relative; }
+    .leaflet-container { background: none !important; }
+
+    /* ── Map zoom buttons ── */
+    #map-zoom-controls {
+      position: absolute;
+      top: 10px; left: 10px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
+    #map-zoom-controls button {
+      width: 30px; height: 30px;
+      font-size: 18px; line-height: 1;
+      border: 1px solid rgba(0,0,0,0.3);
+      border-radius: 4px;
+      background: rgba(255,255,255,0.5);
+      cursor: pointer;
+      backdrop-filter: blur(2px);
+    }
+    #map-zoom-controls button:hover { background: var(--hover-bg); }
+
+    /* ── Fossil click info panel (top-right, always present) ── */
+    .info-panel {
+      position: absolute;
+      top: 10px; right: 10px;
+      background: #070018c1;
+      padding: 10px;
+      border-radius: 4px;
+      max-width: 600px;
+      z-index: 1000;
+      font-size: 14px;
+      color: whitesmoke;
+    }
+
+    #slide-overlay {
+      display: none;                  
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: #070018e8;
+      color: whitesmoke;
+      padding: 24px 28px;
+      border-radius: 8px;
+      max-width: 680px;
+      width: 90%;
+      max-height: 80%;
+      overflow-y: auto;
+      z-index: 1100;
+      font-size: 14px;
+      text-align: left;
+      line-height: 1.6;
+    }
+
+    #slide-overlay-close {
+      position: absolute;
+      top: 8px; right: 12px;
+      background: none;
+      border: none;
+      color: whitesmoke;
+      font-size: 20px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    #slide-overlay-close:hover { color: #e63946; }
+
+    #reopen-banner {
+      display: none;
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      background: rgba(7, 0, 24, 0.45);
+      color: whitesmoke;
+      text-align: center;
+      padding: 6px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      z-index: 1050;
+      letter-spacing: 0.03em;
+      transition: background 0.2s;
+    }
+    #reopen-banner:hover { background: rgba(7, 0, 24, 0.7); }
 
     #time {
       width: 100%;
@@ -118,52 +208,80 @@
       padding: 10px 0;
       font-size: 20px;
       font-weight: bold;
-      background: #f4f4f4;
-      border-top: 1px solid #ddd;
+      background: var(--main-bg);
+      border-top: 1px solid var(--main-bg);
     }
-    .info-panel {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: white;
-      padding: 10px;
-      border-radius: 4px;
-      max-width: 300px;
-      z-index: 1000;
-      font-size: 14px;
-    }
+
     .nav-buttons { text-align: center; padding: 8px 0; }
     .nav-buttons button { font-size: 16px; padding: 5px 10px; margin: 0 5px; }
+
+    .cat-toggle {
+      padding: 5px 12px; margin: 0 4px;
+      border: 2px solid var(--main-bg);
+      border-radius: 20px;
+      background: var(--main-bg);
+      cursor: pointer; font-size: 13px;
+      transition: opacity 0.2s;
+    }
+    .cat-toggle.active { border-color: var(--main-bg); background: var(--main-bg); }
+    .cat-toggle:not(.active) { opacity: 0.4; }
   </style>
 </head>
 <body>
 
 <div id="main-wrapper">
+
+  <!-- ── Phylogeny panel ── -->
   <div id="phylo-panel">
     <div id="phylo-header">
-      <span id="phylo-title">Phylogeny</span>
+      <span id="phylo-title"></span>
       <button id="phylo-toggle" title="Collapse/expand">◀</button>
     </div>
     <div id="phylo-zoom-controls">
       <button id="phylo-zoom-out">−</button>
-      <span id="phylo-zoom-label">100%</span>
+      <span id="phylo-zoom-label"></span>
       <button id="phylo-zoom-in">+</button>
-      <button id="phylo-zoom-reset" title="Reset view" style="width:auto; padding:0 7px; font-size:13px;">⌂</button>
+      <button id="phylo-zoom-reset" title="Reset view"
+              style="width:auto; padding:0 7px; font-size:13px;">⌂</button>
     </div>
     <div id="phylo-scroll">
       <div id="phylo-inner">
-        <img id="phylo-img" src="big_tree_vertical.svg" />
+        <div id="phylo-simple-svg-wrapper"></div>
       </div>
     </div>
   </div>
-  <div id="map"></div>
+
+  <!-- ── Map panel ── -->
+  <div id="map">
+    <div id="map-zoom-controls">
+      <button id="map-zoom-in">+</button>
+      <button id="map-zoom-out">−</button>
+    </div>
+
+    <!-- Fossil-click info panel (top-right corner) -->
+    <div class="info-panel" id="info"></div>
+
+    <!-- Centred slide overlay (intro / 65Ma) -->
+    <div id="slide-overlay">
+      <button id="slide-overlay-close" title="Close">✕</button>
+      <div id="slide-overlay-content"></div>
+    </div>
+
+    <!-- Reopen banner across the top of the map -->
+    <div id="reopen-banner">▼ Click to re-open information panel</div>
+  </div>
+
 </div>
 
-<div class="info-panel" id="info"></div>
 <div id="time"></div>
 <div class="nav-buttons">
   <button id="prevBtn">◀</button>
   <button id="nextBtn">▶</button>
+</div>
+<div id="category-toggles" style="text-align:center; padding: 4px 0;">
+  <button class="cat-toggle active" data-category="fossil">Fossils</button>
+  <button class="cat-toggle active" data-category="geography">Geography</button>
+  <button class="cat-toggle active" data-category="story">Story</button>
 </div>
 
 <p style="font-size:14px; text-align:center; color:crimson">Still in progress. Check back later for updates.</p>
@@ -174,7 +292,10 @@
 </p>
 
 <p style="font-size:14px; text-align:left">
-  <b>Maps:</b> Adapted from Scotese, C.R., and Wright, N., 2018. PALEOMAP Paleodigital Elevation Models (PaleoDEMS) for the Phanerozoic PALEOMAP Project, https://www.earthbyte.org/paleodem-resourcescotese-and-wright-2018/
+  <b>Map coastline data:</b> Kocsis, Á.T. and Scotese, C.R., 2021. Mapping paleocoastlines and continental flooding during the Phanerozoic. Earth-Science Reviews, 213, p.103463.
+</p>
+<p style="font-size:14px; text-align:left">
+  <b>Map style edited in:</b> QGIS.org, 2026. QGIS Geographic Information System. QGIS Association. http://www.qgis.org
 </p>
 <p style="font-size:14px; text-align:left">
   <b>Phylogeny:</b> Adapted from the metatree approach that combines genetic and morphological data in a single analysis. Wisniewski, A.L., Lloyd, G.T. and Slater, G.J., 2022. Extant species fail to estimate ancestral geographical ranges at older nodes in primate phylogeny. Proceedings of the Royal Society B: Biological Sciences, 289(1975). 
@@ -183,8 +304,18 @@
   <b>Plotting the phylogeny:</b> To plot the phylogeny I used TreeViewer. See here for more details: Bianchini, G., & Sánchez-Baracaldo, P. (2024). TreeViewer: Flexible, modular software to visualise and manipulate phylogenetic trees. Ecology and Evolution, 14, e10873. https://doi.org/10.1002/ece3.10873 
 </p>
 <p style="font-size:14px; text-align:left">
+  <b>Bleeding tree effect:</b> Designed in Inkscape. 
+</p>
+<p style="font-size:14px; text-align:left">
+  <b>Fossil data (and also great paper):</b> Based on Avaria-Llautureo, J., Püschel, T.A., Meade, A., Baker, J., Nicholson, S.L. and Venditti, C., 2025. The radiation and geographic expansion of primates through diverse climates. Proceedings of the National Academy of Sciences, 122(32), p.e2423833122. 
+</p>
+<p style="font-size:14px; text-align:left">
   <b>Taxonomic images:</b> Sourced from https://www.phylopic.org/ 
 </p>
+<p style="font-size:14px; text-align:left">
+  <b>AI usage:</b> Claude and ChatGPT for helping code the html. No AI used for writing, research, or art design.
+</p>
+
 
 <hr>
 
@@ -220,91 +351,314 @@
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
 
-/********** Slide data **********/
-var slides = [
-  {
-    map: "maps_clean/65_ma_simplified.png",
-    time: "66 Million Years Ago",
-    fossils: [
-      { name: "Where did primates first evolve?", x: 2000,  y: 800, info: "It is a question that has remained stubbornly difficult to answer. Decades of debate have seen the number of candidate continents drop to… four, “narrowing” the possibilities to most of the Northern Hemisphere (North America, Europe, and Asia) and Africa.Over the same period, outlandish hypotheses about primate evolution and dispersal, such as their voyage across the Atlantic on nothing but rafts of vegetation, have gained general attention.The first crown primates appear in the fossil record at the beginning of the Eocene, some 56 million years ago (Ma). But genetic data estimates primate origins at about 66 Ma, soon after, the mass extinction event that wiped out the non-avian dinosaurs. This leaves an almost 10-million-year gap in our knowledge of primate dispersals.For the very first stem primates, Asia has been favoured, as it happens to be where their closest living relatives (the colugos and tree shrews) are found today. But, as we will soon see, species distributions can fluctuate wildly over just a few million years. Modern primates are mostly restricted to the Southern Hemisphere, the opposite of their early fossil representatives. The same could be true for tree shrews and colugos.A recent modelling study found the greatest support for a North American origin (Avaria-Llautureo et al., 2025). However, without more fossil discoveries, this mystery is likely to endure a while longer." },
-      { name: "Where did primates first evolve?", x: 2950, y: 940, info: "It is a question that has remained stubbornly difficult to answer. Decades of debate have seen the number of candidate continents drop to… four, “narrowing” the possibilities to most of the Northern Hemisphere (North America, Europe, and Asia) and Africa.Over the same period, outlandish hypotheses about primate evolution and dispersal, such as their voyage across the Atlantic on nothing but rafts of vegetation, have gained general attention.The first crown primates appear in the fossil record at the beginning of the Eocene, some 56 million years ago (Ma). But genetic data estimates primate origins at about 66 Ma, soon after, the mass extinction event that wiped out the non-avian dinosaurs. This leaves an almost 10-million-year gap in our knowledge of primate dispersals.For the very first stem primates, Asia has been favoured, as it happens to be where their closest living relatives (the colugos and tree shrews) are found today. But, as we will soon see, species distributions can fluctuate wildly over just a few million years. Modern primates are mostly restricted to the Southern Hemisphere, the opposite of their early fossil representatives. The same could be true for tree shrews and colugos.A recent modelling study found the greatest support for a North American origin (Avaria-Llautureo et al., 2025). However, without more fossil discoveries, this mystery is likely to endure a while longer." },
-      { name: "Where did primates first evolve?", x: 3800, y: 900, info: "It is a question that has remained stubbornly difficult to answer. Decades of debate have seen the number of candidate continents drop to… four, “narrowing” the possibilities to most of the Northern Hemisphere (North America, Europe, and Asia) and Africa.Over the same period, outlandish hypotheses about primate evolution and dispersal, such as their voyage across the Atlantic on nothing but rafts of vegetation, have gained general attention.The first crown primates appear in the fossil record at the beginning of the Eocene, some 56 million years ago (Ma). But genetic data estimates primate origins at about 66 Ma, soon after, the mass extinction event that wiped out the non-avian dinosaurs. This leaves an almost 10-million-year gap in our knowledge of primate dispersals.For the very first stem primates, Asia has been favoured, as it happens to be where their closest living relatives (the colugos and tree shrews) are found today. But, as we will soon see, species distributions can fluctuate wildly over just a few million years. Modern primates are mostly restricted to the Southern Hemisphere, the opposite of their early fossil representatives. The same could be true for tree shrews and colugos.A recent modelling study found the greatest support for a North American origin (Avaria-Llautureo et al., 2025). However, without more fossil discoveries, this mystery is likely to endure a while longer." },
-      { name: "Where did primates first evolve?", x: 2900,  y: 1150, info: "It is a question that has remained stubbornly difficult to answer. Decades of debate have seen the number of candidate continents drop to… four, “narrowing” the possibilities to most of the Northern Hemisphere (North America, Europe, and Asia) and Africa.Over the same period, outlandish hypotheses about primate evolution and dispersal, such as their voyage across the Atlantic on nothing but rafts of vegetation, have gained general attention.The first crown primates appear in the fossil record at the beginning of the Eocene, some 56 million years ago (Ma). But genetic data estimates primate origins at about 66 Ma, soon after, the mass extinction event that wiped out the non-avian dinosaurs. This leaves an almost 10-million-year gap in our knowledge of primate dispersals.For the very first stem primates, Asia has been favoured, as it happens to be where their closest living relatives (the colugos and tree shrews) are found today. But, as we will soon see, species distributions can fluctuate wildly over just a few million years. Modern primates are mostly restricted to the Southern Hemisphere, the opposite of their early fossil representatives. The same could be true for tree shrews and colugos.A recent modelling study found the greatest support for a North American origin (Avaria-Llautureo et al., 2025). However, without more fossil discoveries, this mystery is likely to endure a while longer." }
-    ]
-  },
-  {
-    map: "maps_clean/40_ma_simplified.png",
-    time: "40 Million Years Ago",
-    fossils: [
-        { name: "The first voyage", x: 3000, y: 950, info: "In the mid Eocene a group of primates known as anthropoids (the ancestors of monkeys, apes, and humans), suddenly begin to appear in Africa where before they had only occurred in the Northern continents. This may seem unremarkable at first, until one realises that at the time of that transition, Africa was separated from Europe and Asia by a now extinct sea known as the Tethys. Estimates for how large this separation was differ between models, but range between 500-2000 km. For reference, the maximum width (North to South) of the Mediterranean today is 1600 km. How did our primate ancestors cross this sea to reach Africa? Scientists think they most likely rafted across, carried on flotillas of vegetation stripped from riverbanks during heavy floods. Torn from their home and cast adrift, the fossils that appear on the African mainland are a testament to their tale of survival. Once in Africa, anthropoids found remarkable success, but it appears as if this was just a stepping stone. Primates would traverse oceans again at least twice before our species emerged. And one would be a feat so impressive we did not match it until the end of the medieval period." },
-      { name: "True pioneers", x: 2800, y: 1700, info: "Living monkeys can be split into two main groups based on their worldly distribution. There are the new world monkeys and the old world monkeys. Divided by the Atlantic Ocean, it was thought that these two groups must have split off from one another at the same time South America and Africa divided. However, this would have been deep in the Cretaceous, when dinosaurs still ruled, and we know from genetic evidence that the split actually occurred roughly 40 million years ago. By that time, South America was not as far from Africa as it was today (it was about 1/3 closer), however there would have still been an entire ocean separating them. And whilst, there is evidence of island chains stretching out into the Atlantic, the closest was still some 800 km from the SA coast. And in fact, a recent paper concludes that island hopping was actually less likely than the alternative (Montheil et al., 2026). This alternative being yet another feat of ocean survival and traversal by our ancient primate relatives. Once again, scientists believe the frequent monsoons that assailed the coastline of West Africa at the time, may have dislodged a section of a riverbank, sweeping it and any unfortunate animals that may have been upon it, out into the open ocean. Yet even faced with a journey of 2000 km it seems at least one, or maybe, several voyages, made successful landfall. How strange it must have been for those ancient primates, finding themselves on a continent populated by giant sloths and armadillos, mammals that had been completely isolated from the rest of the world for many tens of millions of years" }
-    ]
-  },
-  {
-    map: "maps_clean/20_ma_simplified.png",
-    time: "20 Million Years Ago",
-    fossils: [
-      { name: "", x: 0, y: 0, info: "" },
-      { name: "", x: 0, y: 0, info: "" }
-    ]
+function loadMarkdown(path) {
+  return fetch(path)
+    .then(function(r) {
+      if (!r.ok) throw new Error('Could not load ' + path);
+      return r.text();
+    })
+    .then(function(md) {
+      return marked.parse(md);  // marked handles everything
+    });
+}
+var overlayEl       = document.getElementById('slide-overlay');
+var overlayContent  = document.getElementById('slide-overlay-content');
+var overlayClose    = document.getElementById('slide-overlay-close');
+var reopenBanner    = document.getElementById('reopen-banner');
+
+// Track whether the current slide has an overlay so the
+// reopen banner only appears when relevant
+var currentSlideHasOverlay = false;
+
+function openOverlay(html) {
+  overlayContent.innerHTML = html;
+  // Only show if story category is currently active
+  if (activeCategories.story) {
+    overlayEl.style.display    = 'block';
+    reopenBanner.style.display = 'none';
+  } else {
+    // Story is off — don't show overlay or banner
+    overlayEl.style.display    = 'none';
+    reopenBanner.style.display = 'none';
   }
-];
+}
 
-/********** Main map **********/
-var w = 6000;
-var h = 3000;
-var ZOOM = 0;
+function closeOverlay() {
+  overlayEl.style.display = 'none';
+  // Only show reopen banner if this slide actually has content
+  if (currentSlideHasOverlay) {
+    reopenBanner.style.display = 'block';
+  }
+}
 
-var map = L.map('map', {
-  crs: L.CRS.Simple,
-  minZoom: -2,
-  maxZoom: 4,
-  zoomSnap: 0.1,
-  maxBoundsViscosity: 1.0
+// Close button inside overlay
+overlayClose.addEventListener('click', closeOverlay);
+
+// Reopen banner click
+reopenBanner.addEventListener('click', function() {
+  reopenBanner.style.display = 'none';
+  overlayEl.style.display    = 'block';
 });
 
-var southWest = map.unproject([0, h], ZOOM);
-var northEast = map.unproject([w, 0], ZOOM);
-var bounds = new L.LatLngBounds(southWest, northEast);
+var slides = [
+
+  /* ── Intro slide ── */
+  {
+    intro: true,               // marks this as the welcome screen
+    overlay: true,             // auto-open the centred overlay
+    map:  "paleo_map_design/70Ma.png",
+    time: "Welcome",
+    age:  null,
+    fossils: [],
+    branches: [],
+    markdown: 'content/Welcome.md'
+  },
+
+  /* ── 70 Ma ── */
+  { map: "paleo_map_design/70Ma.png", time: "70 Million Years Ago", age: 70,
+    fossils: [],
+    overlay: true,             // auto-open the centred overlay on this slide
+    markdown: 'content/Meet_the_Family.md'
+  },
+
+  {
+    map: "paleo_map_design/65Ma.png",
+    time: "65 Million Years Ago",
+    age: 65,
+    fossils: []
+  },
+
+  { map: "paleo_map_design/60Ma.png", time: "60 Million Years Ago", age: 60,
+    fossils: [], branches: ["L1"] },
+
+  { map: "paleo_map_design/50Ma.png", time: "50 Million Years Ago", age: 50,
+    fossils: [], branches: ['M3','branch_lemur','branch_lemur_tip',
+                            'branch_tarsier','branch_tarsier_tip'] },
+
+  { map: "paleo_map_design/45Ma.png", time: "45 Million Years Ago", age: 45,
+    fossils: [], branches: ['branch_trunk','branch_lemur','branch_lemur_tip',
+                            'branch_tarsier','branch_tarsier_tip'] },
+
+  { map: "paleo_map_design/40Ma.png", time: "40 Million Years Ago", age: 40,
+    fossils: [], overlay: true, markdown: 'content/The_First_Voyage.md' },
+
+  { map: "paleo_map_design/35Ma.png", time: "35 Million Years Ago", age: 35,
+    fossils: [], overlay: true, markdown: 'content/True_Pioneers.md' },
+
+  { map: "paleo_map_design/30Ma.png", time: "30 Million Years Ago", age: 30,
+    fossils: [], branches: ['branch_trunk','branch_lemur','branch_lemur_tip',
+                            'branch_tarsier','branch_tarsier_tip',
+                            'branch_nwm','branch_nwm_tip'] },
+
+  { map: "paleo_map_design/25Ma.png", time: "25 Million Years Ago", age: 25,
+    fossils: [], branches: ['branch_trunk','branch_lemur','branch_lemur_tip',
+                            'branch_tarsier','branch_tarsier_tip',
+                            'branch_nwm','branch_nwm_tip',
+                            'branch_owm','branch_owm_tip'] },
+
+  { map: "paleo_map_design/20Ma.png", time: "20 Million Years Ago", age: 20,
+    fossils: [], branches: ['branch_trunk','branch_lemur','branch_lemur_tip',
+                            'branch_tarsier','branch_tarsier_tip',
+                            'branch_nwm','branch_nwm_tip',
+                            'branch_owm','branch_owm_tip',
+                            'branch_apes','branch_apes_tip'] },
+
+  { map: "paleo_map_design/15Ma.png", time: "15 Million Years Ago", age: 15,
+    fossils: [], branches: ['branch_trunk','branch_lemur','branch_lemur_tip',
+                            'branch_tarsier','branch_tarsier_tip',
+                            'branch_nwm','branch_nwm_tip',
+                            'branch_owm','branch_owm_tip',
+                            'branch_apes','branch_apes_tip'] },
+
+  { map: "paleo_map_design/10Ma_30opc.png", time: "10 Million Years Ago", age: 10,
+    fossils: [], branches: ['branch_trunk','branch_lemur','branch_lemur_tip',
+                            'branch_tarsier','branch_tarsier_tip',
+                            'branch_nwm','branch_nwm_tip',
+                            'branch_owm','branch_owm_tip',
+                            'branch_apes','branch_apes_tip'] },
+
+  { map: "paleo_map_design/05Ma.png", time: "5 Million Years Ago", age: 5,
+    fossils: [], branches: ['branch_trunk','branch_lemur','branch_lemur_tip',
+                            'branch_tarsier','branch_tarsier_tip',
+                            'branch_nwm','branch_nwm_tip',
+                            'branch_owm','branch_owm_tip',
+                            'branch_apes','branch_apes_tip'] },
+
+  { map: "paleo_map_design/0Ma_new.png", time: "Present Day", age: 0,
+    fossils: [], branches: ['branch_trunk','branch_lemur','branch_lemur_tip',
+                            'branch_tarsier','branch_tarsier_tip',
+                            'branch_nwm','branch_nwm_tip',
+                            'branch_owm','branch_owm_tip',
+                            'branch_apes','branch_apes_tip'] }
+];
+
+/* ==========================================================
+   AGE → SVG GROUP MAPPING
+   ========================================================== */
+var ageToGroup = {
+  0:'g_0', 5:'g_05', 10:'g_10', 15:'g_15', 20:'g_20',
+  25:'g_25', 30:'g_30', 35:'g_35', 40:'g_40', 45:'g_45',
+  50:'g_50', 55:'g_55', 60:'g_60', 65:'g_65', 70:'g_70', 75:'g_75'
+};
+var allTimeGroups = Object.values(ageToGroup);
+
+/* ==========================================================
+   SIMPLE TREE — BRANCH OPACITY
+   ========================================================== */
+function updateSimpleTree(slide) {
+  document.querySelectorAll('.tree-branch').forEach(function(el) {
+    el.style.opacity = '0.1';
+  });
+  if (slide.branches) {
+    slide.branches.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.style.opacity = '1';
+    });
+  }
+}
+
+/* ==========================================================
+   SIMPLE TREE — TIME GROUP VISIBILITY
+   ========================================================== */
+function updateSimpleTreeTime(slide) {
+  var wrapperEl = document.getElementById('phylo-simple-svg-wrapper');
+  if (!wrapperEl || !wrapperEl.querySelector('svg')) return;
+
+  // Hide all time groups
+  allTimeGroups.forEach(function(label) {
+    var el = wrapperEl.querySelector('[inkscape\\:label="' + label + '"]');
+    if (el) el.style.display = 'none';
+  });
+
+  // Show the one matching this slide's age (null age = intro, nothing shown)
+  var targetLabel = ageToGroup[slide.age];
+  if (targetLabel) {
+    var targetEl = wrapperEl.querySelector('[inkscape\\:label="' + targetLabel + '"]');
+    if (targetEl) targetEl.style.display = 'inline';
+  }
+}
+
+/* ==========================================================
+   TIP / LABEL / STEM HIGHLIGHTING
+   ========================================================== */
+function findByLabel(parent, label) {
+  if (!parent) return null;
+  return parent.querySelector('[inkscape\\:label="' + label + '"]');
+}
+
+function highlightTip(tipId, labelId, stemId) {
+  // Clear all
+  document.querySelectorAll('.tree-tip, .tree-label').forEach(function(el) {
+    el.classList.remove('tree-tip-highlighted');
+  });
+  if (window.stemGroup) {
+    window.stemGroup.querySelectorAll('[inkscape\\:label]').forEach(function(el) {
+      el.style.display = 'none';
+    });
+  }
+
+  if (!stemId) {
+    // Normal fossil — highlight icon + clade name
+    if (tipId && window.tipsGroup) {
+      var tip = findByLabel(window.tipsGroup, tipId);
+      if (tip) tip.classList.add('tree-tip-highlighted');
+    }
+    if (labelId && window.labelsGroup) {
+      var lbl = findByLabel(window.labelsGroup, labelId);
+      if (lbl) lbl.classList.add('tree-tip-highlighted');
+    }
+  } else {
+    // Stem fossil — highlight clade name + show stem label
+    if (labelId && window.labelsGroup) {
+      var lbl2 = findByLabel(window.labelsGroup, labelId);
+      if (lbl2) lbl2.classList.add('tree-tip-highlighted');
+    }
+    if (window.stemGroup) {
+      var stem = findByLabel(window.stemGroup, stemId);
+      if (stem) {
+        stem.style.display = 'inline';
+        stem.classList.add('tree-tip-highlighted');
+      }
+    }
+  }
+}
+
+function clearTreeHighlights() {
+  document.querySelectorAll('.tree-tip, .tree-label').forEach(function(el) {
+    el.classList.remove('tree-tip-highlighted');
+  });
+  if (window.stemGroup) {
+    window.stemGroup.querySelectorAll('[inkscape\\:label]').forEach(function(el) {
+      el.style.display = 'none';
+    });
+  }
+}
+
+/* ==========================================================
+   LEAFLET MAP
+   ========================================================== */
+var map = L.map('map', {
+  crs: L.CRS.EPSG4326,
+  minZoom: -2, maxZoom: 4, zoomSnap: 0.1,
+  maxBoundsViscosity: 3,
+  zoomControl: false, attributionControl: false
+});
+
+var bounds = L.latLngBounds(L.latLng(-90,-180), L.latLng(90,180));
 map.fitBounds(bounds);
 map.setMaxBounds(bounds);
 
-/********** Resize wrapper to match image aspect ratio **********/
+/* ==========================================================
+   RESIZE WRAPPER
+   ========================================================== */
 var wrapper = document.getElementById('main-wrapper');
 var mapDiv  = document.getElementById('map');
 
 function resizeWrapper() {
   var mapWidth = mapDiv.offsetWidth;
   if (mapWidth === 0) return;
-  var newHeight = mapWidth * (h / w);
-  wrapper.style.height = newHeight + 'px';
+  wrapper.style.height = (mapWidth * 0.5) + 'px';
   map.invalidateSize();
-  map.fitBounds(bounds);
+  setTimeout(function() {
+    map.fitBounds(bounds);
+    map.setMinZoom(map.getBoundsZoom([[-90,-180],[90,180]], true));
+  }, 50);
   initPhyloZoom();
 }
-resizeWrapper();
+window.addEventListener('load', resizeWrapper);
 window.addEventListener('resize', resizeWrapper);
 
-/********** Phylogeny panel **********/
-var SVG_W = 9000;
-var SVG_H = 20311;
+/* ==========================================================
+   PHYLOGENY PAN / ZOOM
+   SVG_W / SVG_H should match the viewBox of simple_tree.svg
+   ========================================================== */
+var SVG_W = 11299.119999237577;
+var SVG_H = 20310.875919732443;
 var MIN_SCALE = 0;
 var MAX_SCALE = 5;
-var ZOOM_STEP = 1.25;  
+var ZOOM_STEP = 1.25;
 
 var phyloScroll = document.getElementById('phylo-scroll');
 var phyloInner  = document.getElementById('phylo-inner');
-var phyloImg    = document.getElementById('phylo-img');
 var zoomLabel   = document.getElementById('phylo-zoom-label');
-
-var pScale = 1;
-var pX = 0;
-var pY = 0;
-var fitScale = 1;  
+var pScale = 1, pX = 0, pY = 0, fitScale = 1;
 
 function applyPhyloTransform() {
+  var panelW  = phyloScroll.offsetWidth;
+  var panelH  = phyloScroll.offsetHeight;
+  var scaledW = SVG_W * pScale;
+  var scaledH = SVG_H * pScale;
+
+  // Clamp so SVG never drifts outside the panel
+  pX = scaledW <= panelW
+    ? (panelW - scaledW) / 2
+    : Math.min(0, Math.max(panelW - scaledW, pX));
+  pY = scaledH <= panelH
+    ? (panelH - scaledH) / 2
+    : Math.min(0, Math.max(panelH - scaledH, pY));
+
   phyloInner.style.transform =
-    'translate(' + pX + 'px, ' + pY + 'px) scale(' + pScale + ')';
+    'translate(' + pX + 'px,' + pY + 'px) scale(' + pScale + ')';
   zoomLabel.textContent = Math.round(pScale / fitScale * 100) + '%';
 }
 
@@ -313,56 +667,48 @@ function initPhyloZoom() {
   var panelH = phyloScroll.offsetHeight;
   if (panelH === 0) return;
 
-  phyloImg.style.width  = SVG_W + 'px';
-  phyloImg.style.height = SVG_H + 'px';
+  var svgWrapper = document.getElementById('phylo-simple-svg-wrapper');
+  if (svgWrapper) {
+    svgWrapper.style.width  = SVG_W + 'px';
+    svgWrapper.style.height = SVG_H + 'px';
+  }
+  var svgEl = svgWrapper ? svgWrapper.querySelector('svg') : null;
+  if (svgEl) {
+    svgEl.style.width  = SVG_W + 'px';
+    svgEl.style.height = SVG_H + 'px';
+  }
 
-  // Scale so full tree height fills the panel
-  fitScale = panelH / SVG_H;
-  pScale   = fitScale;
-
-  // Centre horizontally
-  pX = (phyloScroll.offsetWidth - SVG_W * pScale) / 2;
+  var panelW   = phyloScroll.offsetWidth;
+  fitScale = Math.min(panelH / SVG_H, panelW / SVG_W);
+  MIN_SCALE    = fitScale * 0.8;
+  pScale       = fitScale;
+  pX = (panelW - SVG_W * pScale) / 2;
   pY = 0;
-
   applyPhyloTransform();
 }
 
-// Zoom toward the centre of the panel
 function zoomPhylo(newScale) {
   newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, newScale));
   if (newScale === pScale) return;
-
   var cx = phyloScroll.offsetWidth  / 2;
   var cy = phyloScroll.offsetHeight / 2;
-
-  var scaleRatio = newScale / pScale;
-  pX = cx - scaleRatio * (cx - pX);
-  pY = cy - scaleRatio * (cy - pY);
+  var r  = newScale / pScale;
+  pX = cx - r * (cx - pX);
+  pY = cy - r * (cy - pY);
   pScale = newScale;
-
   applyPhyloTransform();
 }
 
-document.getElementById('phylo-zoom-in').addEventListener('click', function() {
-  zoomPhylo(pScale * ZOOM_STEP);
-});
-document.getElementById('phylo-zoom-out').addEventListener('click', function() {
-  zoomPhylo(pScale / ZOOM_STEP);
-});
-document.getElementById('phylo-zoom-reset').addEventListener('click', function() {
-  initPhyloZoom();
-});
+document.getElementById('phylo-zoom-in').addEventListener('click',    function() { zoomPhylo(pScale * ZOOM_STEP); });
+document.getElementById('phylo-zoom-out').addEventListener('click',   function() { zoomPhylo(pScale / ZOOM_STEP); });
+document.getElementById('phylo-zoom-reset').addEventListener('click', function() { initPhyloZoom(); });
 
-/********** Drag to pan **********/
-var dragging = false;
-var dragStartX, dragStartY, dragOriginX, dragOriginY;
-
+/* Drag to pan */
+var dragging = false, dragStartX, dragStartY, dragOriginX, dragOriginY;
 phyloScroll.addEventListener('mousedown', function(e) {
-  dragging    = true;
-  dragStartX  = e.clientX;
-  dragStartY  = e.clientY;
-  dragOriginX = pX;
-  dragOriginY = pY;
+  dragging = true;
+  dragStartX = e.clientX; dragStartY = e.clientY;
+  dragOriginX = pX;       dragOriginY = pY;
   e.preventDefault();
 });
 window.addEventListener('mousemove', function(e) {
@@ -371,18 +717,12 @@ window.addEventListener('mousemove', function(e) {
   pY = dragOriginY + (e.clientY - dragStartY);
   applyPhyloTransform();
 });
-window.addEventListener('mouseup', function() {
-  dragging = false;
-});
+window.addEventListener('mouseup', function() { dragging = false; });
 
-phyloImg.addEventListener('load', initPhyloZoom);
-if (phyloImg.complete) initPhyloZoom();
-
-/********** Collapse / expand **********/
+/* Collapse / expand */
 var phyloPanel  = document.getElementById('phylo-panel');
 var phyloToggle = document.getElementById('phylo-toggle');
 var collapsed   = false;
-
 phyloToggle.addEventListener('click', function() {
   collapsed = !collapsed;
   phyloPanel.classList.toggle('collapsed', collapsed);
@@ -395,54 +735,255 @@ phyloToggle.addEventListener('click', function() {
   }, 320);
 });
 
-/********** Slide display **********/
+/* ==========================================================
+   LOAD SIMPLE TREE SVG
+   ========================================================== */
+fetch('simple_tree.svg')
+  .then(function(r) { return r.text(); })
+  .then(function(svgText) {
+    var wrapperEl = document.getElementById('phylo-simple-svg-wrapper');
+    wrapperEl.innerHTML = svgText;
+    initPhyloZoom();
+
+    window.svgRoot     = wrapperEl.querySelector('svg');
+    window.tipsGroup   = svgRoot.querySelector('[inkscape\\:label="taxa_icons"]');
+    window.labelsGroup = svgRoot.querySelector('[inkscape\\:label="Clade_names"]');
+    window.stemGroup   = svgRoot.querySelector('[inkscape\\:label="Stem_names"]');
+
+    if (window.stemGroup) {
+      window.stemGroup.querySelectorAll('[inkscape\\:label]').forEach(function(el) {
+        el.style.display = 'none';
+        el.classList.add('tree-label');
+      });
+    }
+    if (window.tipsGroup) {
+      window.tipsGroup.querySelectorAll('[inkscape\\:label]').forEach(function(el) {
+        el.classList.add('tree-tip');
+      });
+    }
+    if (window.labelsGroup) {
+      window.labelsGroup.querySelectorAll('[inkscape\\:label]').forEach(function(el) {
+        el.classList.add('tree-label');
+      });
+    }
+
+    updateSimpleTree(slides[0]);
+    updateSimpleTreeTime(slides[0]);
+  });
+
 var currentMap     = null;
 var currentMarkers = [];
 var currentSlide   = 0;
+var MAP_PNG_W = 2362;
+var MAP_PNG_H = 1181;
+
+var iconDims = {
+  'asia_highlight.png':                            [319, 169],
+  'icons/fossils_base/book_brown_shadow_glow.svg': [700, 700],
+  'icons/fossils_base/bone_black_glow.svg':        [140, 140]
+};
 
 function showSlide(index) {
+  clearTreeHighlights();
   var slide = slides[index];
 
-  if (currentMap) map.removeLayer(currentMap);
-  currentMap = L.imageOverlay(slide.map, bounds).addTo(map);
+  currentSlideHasOverlay = false;
+  overlayEl.style.display      = 'none';
+  reopenBanner.style.display   = 'none';
 
-  currentMarkers.forEach(m => map.removeLayer(m));
-  currentMarkers = [];
+  function applyOverlayContent(html) {
+    currentSlideHasOverlay = true;
+    openOverlay(html);
+  }
 
-  slide.fossils.forEach(function(fossil) {
-    var latlng = map.unproject([fossil.x, fossil.y], ZOOM);
-    var icon = L.divIcon({
-      html: `<div style="
-          width:16px; height:16px;
-          border:2px solid black; border-radius:50%;
-          background:transparent;
-          display:flex; align-items:center; justify-content:center;">
-        <div style="width:8px; height:8px; border-radius:50%; background:black;"></div>
-      </div>`,
-      className: '',
-      iconAnchor: [8, 8]
+  if (slide.overlay) {
+    if (slide.markdown) {
+      // Load from external .md file
+      loadMarkdown(slide.markdown)
+        .then(applyOverlayContent)
+        .catch(function(err) {
+          console.error('Markdown load failed:', err);
+          if (slide.info) applyOverlayContent(slide.info);
+        });
+    } else if (slide.info) {
+      // Use inline HTML string
+      applyOverlayContent(slide.info);
+    }
+  }
+
+  /* ── Map image swap with crossfade ───────────────────── */
+  var newOverlay = L.imageOverlay(slide.map, bounds, { opacity: 0 });
+
+  newOverlay.on('load', function() {
+    newOverlay.setOpacity(1);
+    setTimeout(function() {
+      if (currentMap) map.removeLayer(currentMap);
+      currentMap = newOverlay;
+    }, 50);
+
+    /* ── Clear and redraw markers ──────────────────────── */
+    currentMarkers.forEach(function(m) { map.removeLayer(m); });
+    currentMarkers = [];
+
+    slide.fossils.filter(function(fossil) {
+      return activeCategories[fossil.category];
+    }).forEach(function(fossil) {
+      var latlng = L.latLng(fossil.lat, fossil.lng);
+      var icon;
+
+      if (fossil.icon) {
+        var dims     = iconDims[fossil.icon] || [200, 200];
+        var scaleX   = mapDiv.offsetWidth  / MAP_PNG_W;
+        var scaleY   = mapDiv.offsetHeight / MAP_PNG_H;
+        var displayW = Math.round(dims[0] * scaleX);
+        var displayH = Math.round(dims[1] * scaleY);
+        icon = L.icon({
+          iconUrl:    fossil.icon,
+          iconSize:   [displayW, displayH],
+          iconAnchor: [Math.round(displayW / 2), Math.round(displayH / 2)]
+        });
+      } else {
+        icon = L.divIcon({
+          html: '<div style="width:16px;height:16px;border:2px solid black;' +
+                'border-radius:50%;background:transparent;display:flex;' +
+                'align-items:center;justify-content:center;">' +
+                '<div style="width:8px;height:8px;border-radius:50%;' +
+                'background:black;"></div></div>',
+          className: '',
+          iconAnchor: [8, 8]
+        });
+      }
+
+      var marker = L.marker(latlng, { icon: icon }).addTo(map);
+      marker.on('click', function() {
+        document.getElementById('info').innerHTML =
+          '<b>' + fossil.name.replace(/_/g,' ') + '</b><br>' + fossil.info;
+        highlightTip(fossil.tip_id || null,
+                     fossil.label_id || null,
+                     fossil.stem_id  || null);
+      });
+      currentMarkers.push(marker);
     });
-    var marker = L.marker(latlng, { icon: icon }).addTo(map);
-    marker.on('click', function() {
-      document.getElementById('info').innerHTML =
-        "<b>" + fossil.name + "</b><br>" + fossil.info;
-    });
-    currentMarkers.push(marker);
+
+    /* ── Tree updates ──────────────────────────────────── */
+    updateSimpleTree(slide);
+    updateSimpleTreeTime(slide);
+
+    /* ── Time label ────────────────────────────────────── */
+    document.getElementById('time').innerHTML = slide.time;
+
+    /* ── Clear fossil-click info panel on slide change ─── */
+    document.getElementById('info').innerHTML = '';
   });
 
-  document.getElementById('time').innerHTML = slide.time;
-  document.getElementById('info').innerHTML = "";
+  newOverlay.addTo(map);
 }
 
-/********** Navigation **********/
+/* ==========================================================
+   LOAD FOSSILS FROM CSV
+   Columns: name, lon, lat, age_max, age_min, icon,
+            category, info, tip_id, label_id, stem_id
+   ========================================================== */
+function loadFossils(csvPath, callback) {
+  fetch(csvPath)
+    .then(function(r) { return r.text(); })
+    .then(function(text) {
+      var lines   = text.trim().split('\n');
+      var fossils = [];
+      for (var i = 1; i < lines.length; i++) {
+        var cols = lines[i].split(',');
+        if (cols.length < 3) continue;
+        fossils.push({
+          name:     cols[0].trim(),
+          lng:      parseFloat(cols[1]),
+          lat:      parseFloat(cols[2]),
+          age_max:  parseFloat(cols[3]),
+          age_min:  parseFloat(cols[4]),
+          icon:     cols[5] ? cols[5].trim() : null,
+          category: cols[6] ? cols[6].trim() : 'fossil',
+          info:     cols[7] ? cols[7].trim() : cols[0].trim().replace(/_/g,' '),
+          tip_id:   cols[8] ? cols[8].trim() : null,
+          label_id: cols[9] ? cols[9].trim() : null,
+          stem_id:  cols[10]? cols[10].trim(): null
+        });
+      }
+      callback(fossils);
+    })
+    .catch(function(err) { console.error('Failed to load CSV:', err); });
+}
+
+/* ==========================================================
+   CATEGORY TOGGLES
+   ========================================================== */
+var activeCategories = { fossil: true, geography: true, story: true };
+
+document.querySelectorAll('.cat-toggle').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var cat = btn.getAttribute('data-category');
+    activeCategories[cat] = !activeCategories[cat];
+    btn.classList.toggle('active', activeCategories[cat]);
+
+    // Story toggle also controls slide overlays
+    if (cat === 'story') {
+      if (!activeCategories.story) {
+        // Story turned off — hide overlay and reopen banner
+        overlayEl.style.display    = 'none';
+        reopenBanner.style.display = 'none';
+      } else {
+        // Story turned back on — reopen overlay if this slide has one
+        if (currentSlideHasOverlay) {
+          overlayEl.style.display    = 'block';
+          reopenBanner.style.display = 'none';
+        }
+      }
+    }
+
+    showSlide(currentSlide);
+  });
+});
+
+/* ==========================================================
+   NAVIGATION
+   ========================================================== */
 document.getElementById('prevBtn').addEventListener('click', function() {
   if (currentSlide > 0) { currentSlide--; showSlide(currentSlide); }
 });
 document.getElementById('nextBtn').addEventListener('click', function() {
   if (currentSlide < slides.length - 1) { currentSlide++; showSlide(currentSlide); }
 });
+document.getElementById('map-zoom-in').addEventListener('click',  function() { map.zoomIn(); });
+document.getElementById('map-zoom-out').addEventListener('click', function() { map.zoomOut(); });
 
-showSlide(0);
+/* ==========================================================
+   INITIALISE — load fossils then show slide 0
+   ========================================================== */
+loadFossils('fossils_c.csv', function(fossils) {
+  var MAX_DIFF = 5;
+
+  // Reset all fossil arrays
+  slides.forEach(function(slide) { slide.fossils = []; });
+
+  // Place each fossil on the closest slide within MAX_DIFF Ma
+  fossils.forEach(function(fossil) {
+    var bestSlide = null;
+    var bestDiff  = Infinity;
+    slides.forEach(function(slide) {
+      if (slide.age === null) return;
+      var diff = fossil.age_max - slide.age;
+      if (diff >= 0 && diff <= MAX_DIFF && diff < bestDiff) {
+        bestDiff  = diff;
+        bestSlide = slide;
+      }
+    });
+    if (bestSlide) {
+      bestSlide.fossils.push(fossil);
+    } else {
+      console.log('Unplaced fossil:', fossil.name, fossil.age_max);
+    }
+  });
+
+  showSlide(0);
+});
 
 </script>
 </body>

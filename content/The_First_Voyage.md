@@ -1,0 +1,5 @@
+# The First Voyage
+
+It's the mid Eocene. A group of primates known as anthropoids (the ancestors of monkeys, apes, and humans), suddenly begin to appear in Africa where before they had only occurred in the Northern continents. 
+
+This may seem unremarkable at first but at the time Africa was a mega-island, separated from Europe and Asia by a now extinct sea known as the Tethys. Estimates for how large this separation was differ between models, but range between 500-2000 km. For reference, the maximum width (North to South) of the Mediterranean today is 1600 km. How did our primate ancestors cross this sea to reach Africa? Scientists think they most likely rafted across, carried on flotillas of vegetation stripped from riverbanks during heavy floods. Torn from their home and cast adrift, the fossils that appear on the African mainland are a testament to their tale of survival. Once in Africa, anthropoids found remarkable success, but it appears as if this was just a stepping stone. Primates would traverse oceans again at least twice before our species emerged. And one would be a feat so impressive we did not match it until the end of the medieval period.
