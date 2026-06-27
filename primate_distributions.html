@@ -284,6 +284,7 @@
   <button class="cat-toggle active" data-category="story">Story</button>
 </div>
 
+<p style="font-size:18px; text-align:center; color:crimson">Initial load is slow but should be smooth afterwards, I am in the process of fixing. Click the story button to toggle info panels.</p>
 <p style="font-size:14px; text-align:center; color:crimson">Still in progress. Check back later for updates.</p>
 <hr>
 
@@ -491,6 +492,13 @@ var slides = [
                             'branch_owm','branch_owm_tip',
                             'branch_apes','branch_apes_tip'] }
 ];
+
+slides.forEach(function(slide) {
+  if (slide.map) {
+    var img = new Image();
+    img.src = slide.map;
+  }
+});
 
 /* ==========================================================
    AGE → SVG GROUP MAPPING
